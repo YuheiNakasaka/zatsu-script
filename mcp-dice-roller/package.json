@@ -1,0 +1,16 @@
+{
+  "name": "mcp-dice-roller",
+  "version": "1.0.0",
+  "main": "src/server.ts",
+  "type": "module",
+  "bin": {
+    "diceRoller": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod 755 build/index.js",
+    "test": "vitest"
+  },
+  "files": [
+    "build"
+  ]
+}
