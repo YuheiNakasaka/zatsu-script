@@ -1,2 +1,11 @@
 AllCops:
   DisabledByDefault: true
+
+Style/HashSyntax:
+  EnforcedShorthandSyntax: always
+
+Style/TrailingBlankLines:
+  Enabled: true
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
