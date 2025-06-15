@@ -1,0 +1,9 @@
+{
+  "editor.formatOnSave": true,
+  "rubyLsp.indexing": {
+    "excludedGems": ["rubocop", "rubocop-performance"],
+    "excludedMagicComments": ["compiled:true"],
+  },
+  "rubocop.mode": "enableViaGemfile",
+  "rubyLsp.rubyExecutablePath": "/Users/y_nakasaka/.rbenv/shims/ruby"
+}
