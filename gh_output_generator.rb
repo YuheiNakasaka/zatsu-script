@@ -91,6 +91,11 @@ variables = {
 }
 
 res = run_github_graphql(query, variables, token)
+if res['errors']
+  puts 'GraphQL エラー:'
+  puts JSON.pretty_generate(res['errors'])
+  exit 1
+end
 cc = res.dig('data', 'user', 'contributionsCollection')
 
 puts '# 作成したPR'
