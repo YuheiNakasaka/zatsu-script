@@ -10,7 +10,7 @@ options = {}
 OptionParser.new do |opts|
   opts.banner = "Usage: #{$PROGRAM_NAME} --org=ORG --user=USER --from=YYYY-MM-DD --to=YYYY-MM-DD"
   opts.on('--org=ORG', 'GitHub Organization名') { |v| options[:org] = v }
-  opts.on('--user=USER', 'GitHubユーザー名') { |v| options[:user] = v }
+  opts.on('--user=USER', 'GitHubユーザー名(カンマ区切りで複数指定可)') { |v| options[:user] = v }
   opts.on('--from=DATE', '開始日 (YYYY-MM-DD)') { |v| options[:from] = v }
   opts.on('--to=DATE', '終了日 (YYYY-MM-DD)') { |v| options[:to] = v }
   opts.on('--token=TOKEN', 'GitHub Personal Access Token') { |v| options[:token] = v }
@@ -84,37 +84,47 @@ query = <<~GRAPHQL
   }
 GRAPHQL
 
-variables = {
-  user: options[:user],
-  from: from_iso,
-  to: to_iso
-}
+outputs = {}
+options[:user].split(',').each do |user|
+  variables = {
+    user:,
+    from: from_iso,
+    to: to_iso
+  }
 
-res = run_github_graphql(query, variables, token)
-if res['errors']
-  puts 'GraphQL エラー:'
-  puts JSON.pretty_generate(res['errors'])
-  exit 1
+  res = run_github_graphql(query, variables, token)
+  if res['errors']
+    puts 'GraphQL エラー:'
+    puts JSON.pretty_generate(res['errors'])
+    exit 1
+  end
+  cc = res.dig('data', 'user', 'contributionsCollection')
+
+  outputs[user] = []
+  outputs[user] << '## 作成したPR'
+  cc['pullRequestContributions']['nodes'].each do |n|
+    pr = n['pullRequest']
+    next unless pr['repository']['nameWithOwner'].start_with?("#{options[:org]}/")
+    outputs[user] << "- #{pr['createdAt']} #{pr['title']} #{pr['url']} (+#{pr['additions']}, -#{pr['deletions']})"
+  end
+
+  outputs[user] << "\n## 作成したIssue"
+  cc['issueContributions']['nodes'].each do |n|
+    issue = n['issue']
+    next unless issue['repository']['nameWithOwner'].start_with?("#{options[:org]}/")
+    outputs[user] << "- #{issue['createdAt']} #{issue['title']} #{issue['url']}"
+  end
+
+  outputs[user] << "\n## レビューしたPR"
+  cc['pullRequestReviewContributions']['nodes'].each do |n|
+    pr = n['pullRequest']
+    next unless pr['repository']['nameWithOwner'].start_with?("#{options[:org]}/")
+    outputs[user] << "- #{n['occurredAt']} #{pr['title']} #{pr['url']}"
+  end
 end
-cc = res.dig('data', 'user', 'contributionsCollection')
 
-puts '# 作成したPR'
-cc['pullRequestContributions']['nodes'].each do |n|
-  pr = n['pullRequest']
-  next unless pr['repository']['nameWithOwner'].start_with?("#{options[:org]}/")
-  puts "- #{pr['createdAt']} #{pr['title']} #{pr['url']} (+#{pr['additions']}, -#{pr['deletions']})"
-end
-
-puts "\n# 作成したIssue"
-cc['issueContributions']['nodes'].each do |n|
-  issue = n['issue']
-  next unless issue['repository']['nameWithOwner'].start_with?("#{options[:org]}/")
-  puts "- #{issue['createdAt']} #{issue['title']} #{issue['url']}"
-end
-
-puts "\n# レビューしたPR"
-cc['pullRequestReviewContributions']['nodes'].each do |n|
-  pr = n['pullRequest']
-  next unless pr['repository']['nameWithOwner'].start_with?("#{options[:org]}/")
-  puts "- #{n['occurredAt']} #{pr['title']} #{pr['url']}"
+outputs.each do |user, output|
+  puts "# #{user}"
+  puts output.join("\n")
+  puts "\n"
 end
